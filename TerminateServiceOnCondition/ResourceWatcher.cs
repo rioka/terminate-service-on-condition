@@ -4,19 +4,25 @@ internal class ResourceWatcher : BackgroundService
 {
   #region Data
 
+  private readonly Func<string, IResourceChecksum> _resourceChecksumFactory;
   private readonly IHostApplicationLifetime _lifetime;
   private readonly ILogger<ResourceWatcher> _logger;
   private readonly Dictionary<string, string?> _resources ;
 
   #endregion
 
-  public ResourceWatcher(IEnumerable<string> resources, IHostApplicationLifetime lifetime, ILogger<ResourceWatcher> logger)
+  public ResourceWatcher(
+    IEnumerable<string> resources,
+    Func<string, IResourceChecksum> resourceChecksumFactory,
+    IHostApplicationLifetime lifetime, 
+    ILogger<ResourceWatcher> logger)
   {
+    _resourceChecksumFactory = resourceChecksumFactory;
     _lifetime = lifetime;
     _logger = logger;
     _resources = resources
-      .Select(f => new FileChecksum(f))
-      .ToDictionary(x => x.Filename, x => x.Checksum.Value);
+      .Select(r => _resourceChecksumFactory(r))
+      .ToDictionary(x => x.Resource, x => x.Checksum.Value);
   }
   
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,7 +37,7 @@ internal class ResourceWatcher : BackgroundService
 
       if (scanResult.Changed)
       {
-        _logger.LogInformation($"{scanResult.Filename} has changed, terminating...");
+        _logger.LogInformation($"{scanResult.Resource} has changed, terminating...");
         _lifetime.StopApplication();
       } 
       else
@@ -45,24 +51,23 @@ internal class ResourceWatcher : BackgroundService
 
   #region Internals
 
-  private static (bool Changed, string Filename) ChecksumChanged(string file, string? previousChecksum)
+  private (bool Changed, string Resource) ChecksumChanged(string resource, string? previousChecksum)
   {
-    var fileExists = File.Exists(file);
-    if (!fileExists)
+    var newResource = _resourceChecksumFactory(resource);
+    if (!newResource.Exists)
     {
-      // If the file does not exist, but we have a previous checksum, it means the file was deleted
-      return (previousChecksum != null, file);
+      // If the resource does not exist, but we have a previous checksum, it means the resource has been deleted
+      return (previousChecksum != null, resource);
     }
 
-    // If file exists, but we have no previous checksum, it means it's a new file
-    if (fileExists && previousChecksum is null)
+    // If resource exists, but we have no previous checksum, it means it's a new file
+    if (previousChecksum is null)
     {
-      return (true, file);
+      return (true, resource);
     }
 
     // In any other case, compare checksums
-    var checksum = new FileChecksum(file).Checksum.Value;
-    return (checksum != previousChecksum!, file);  
+    return (newResource.Checksum.Value != previousChecksum, resource);  
   }
 
   #endregion
