@@ -1,30 +1,29 @@
-﻿using System.Security.Cryptography;
+﻿using System.Globalization;
+using System.Security.Cryptography;
 
 namespace TerminateServiceOnCondition;
 
 internal class FileResourceChecksum : IResourceChecksum
 {
   public string Resource { get; }
-    
-  public Lazy<string?> Checksum { get; } 
-  
-  public bool Exists => File.Exists(Resource);
   
   public FileResourceChecksum(string resource)
   {
     Resource = resource;
-    Checksum = new Lazy<string?>(() => GetChecksum());;
   }
 
-  private string? GetChecksum()
+  public async Task<string?> GetChecksum(CancellationToken cancellationToken)
   {
-    if (!Exists)
+    if (!await Exists(cancellationToken))
     {
       return null;
     }
 
     using var fs = new FileStream(Resource, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-
-    return BitConverter.ToString(SHA256.HashData(fs));
+    var hash = await SHA256.HashDataAsync(fs, cancellationToken);
+    
+    return BitConverter.ToString(hash);
   }
+
+  public Task<bool> Exists(CancellationToken cancellationToken) => Task.FromResult(File.Exists(Resource));
 }
