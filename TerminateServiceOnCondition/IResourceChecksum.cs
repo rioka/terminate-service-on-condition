@@ -4,8 +4,8 @@
   {
     string Resource { get; }
 
-    Lazy<string?> Checksum { get; }
-    
-    bool Exists { get; }
+    Task<string?> GetChecksum(CancellationToken cancellationToken);
+
+    Task<bool> Exists(CancellationToken cancellationToken);
   }
 }
