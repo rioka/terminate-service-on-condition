@@ -42,7 +42,7 @@ internal class ResourceWatcher : BackgroundService
       } 
       else
       {
-        _logger.LogInformation("No changes detected in target files.");
+        _logger.LogInformation("No changes detected in target resources.");
       }
             
       await Task.Delay(1000, stoppingToken);
@@ -60,7 +60,7 @@ internal class ResourceWatcher : BackgroundService
       return (previousChecksum != null, resource);
     }
 
-    // If resource exists, but we have no previous checksum, it means it's a new file
+    // If resource exists, but we have no previous checksum, it means it's a new resource
     if (previousChecksum is null)
     {
       return (true, resource);
