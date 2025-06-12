@@ -2,25 +2,28 @@
 
 namespace TerminateServiceOnCondition;
 
-internal class FileChecksum
+internal class ResourceChecksum : IResourceChecksum
 {
-  public string Filename { get; }
+  public string Resource { get; }
     
   public Lazy<string?> Checksum { get; } 
-  public FileChecksum(string file)
+  
+  public bool Exists => File.Exists(Resource);
+  
+  public ResourceChecksum(string resource)
   {
-    Filename = file;
+    Resource = resource;
     Checksum = new Lazy<string?>(() => GetChecksum());;
   }
 
   private string? GetChecksum()
   {
-    if (!File.Exists(Filename))
+    if (!Exists)
     {
       return null;
     }
 
-    using var fs = new FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+    using var fs = new FileStream(Resource, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
     return BitConverter.ToString(SHA256.HashData(fs));
   }
