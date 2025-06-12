@@ -1,20 +1,20 @@
 ﻿namespace TerminateServiceOnCondition;
 
-internal class FileWatcher : BackgroundService
+internal class ResourceWatcher : BackgroundService
 {
   #region Data
 
   private readonly IHostApplicationLifetime _lifetime;
-  private readonly ILogger<FileWatcher> _logger;
-  private readonly Dictionary<string, string?> _targetFiles ;
+  private readonly ILogger<ResourceWatcher> _logger;
+  private readonly Dictionary<string, string?> _resources ;
 
   #endregion
 
-  public FileWatcher(IEnumerable<string> targetFiles, IHostApplicationLifetime lifetime, ILogger<FileWatcher> logger)
+  public ResourceWatcher(IEnumerable<string> resources, IHostApplicationLifetime lifetime, ILogger<ResourceWatcher> logger)
   {
     _lifetime = lifetime;
     _logger = logger;
-    _targetFiles = targetFiles
+    _resources = resources
       .Select(f => new FileChecksum(f))
       .ToDictionary(x => x.Filename, x => x.Checksum.Value);
   }
@@ -25,7 +25,7 @@ internal class FileWatcher : BackgroundService
     {
       _logger.LogInformation("Checker running at: {time}", DateTime.UtcNow);
             
-      var scanResult = _targetFiles
+      var scanResult = _resources
         .Select(kvp => ChecksumChanged(kvp.Key, kvp.Value))
         .FirstOrDefault(x => x.Changed);
 
