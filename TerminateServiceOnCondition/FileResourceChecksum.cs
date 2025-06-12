@@ -2,7 +2,7 @@
 
 namespace TerminateServiceOnCondition;
 
-internal class ResourceChecksum : IResourceChecksum
+internal class FileResourceChecksum : IResourceChecksum
 {
   public string Resource { get; }
     
@@ -10,7 +10,7 @@ internal class ResourceChecksum : IResourceChecksum
   
   public bool Exists => File.Exists(Resource);
   
-  public ResourceChecksum(string resource)
+  public FileResourceChecksum(string resource)
   {
     Resource = resource;
     Checksum = new Lazy<string?>(() => GetChecksum());;
